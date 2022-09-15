@@ -6,10 +6,13 @@ import React from "react"
 // learned={LearnedNew}
 // new={GetLearn}
 
-const Learn = ({ get, learning, hymns, learned, new}) => {
+const Learn = ({ getLearn, learning, hymns, learned }) => {
   return (
     <>
       <h3>Learn</h3>
+      <div onClick={learned}>Learned</div>
+      <div onClick={getLearn}>New Song</div>
+      <div>{hymns[learning][0] + ' ' + hymns[learning][1]}</div>
     </>
   )
 }

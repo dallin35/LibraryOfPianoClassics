@@ -16,6 +16,7 @@ export default function App() {
   const HymnNoAndTitle = [...hymnNoAndTitle.data];
   const [hymnLearn, setHimLearn] = useStickyState([...cookieTemplate.data], 'status');
   const [hymnPractice, setHimPractice] = useState([]);
+  const [practice, setPractice] = useState([]);
   // const [hymnLearn, setHimLearn] = useState([]);
 
   function useStickyState(defaultValue, key) {
@@ -31,45 +32,21 @@ export default function App() {
     React.useEffect(() => {
       window.localStorage.setItem(key, JSON.stringify(value));
     }, [key, value]);
-    console.log('VALUE');
-    console.log(value);
+    // console.log('VALUE');
+    // console.log(value);
     return [value, setValue];
   }
 
   useEffect(() => {
     GetPractice();
-  }, [practice])
-
-  // useEffect(() => {
-  //   localStorage.setItem('status', JSON.stringify(hymnLearn));
-  // }, [hymnLearn]);
-
-  // useEffect(() => {
-  //   const items = JSON.parse(localStorage.getItem('status'));
-  //   console.log(items);
-  //   if (items) {
-  //     setHimLearn(items);
-  //   } else {
-  //     setHimLearn([...cookieTemplate.data]);
-  //   }
-  // }, []);
-
-  // const heLearn = () => {
-  //   setHimLearn('bonanza');
-  //   localStorage.setItem('learn', JSON.stringify(a));
-  //   console.log("Check");
-  // }
-
-  // const heLearned = () => {
-  //   console.log(JSON.parse(localStorage.getItem('learn')));
-  //   console.log(JSON.parse(localStorage.getItem('status')));
-  // }
+  }, [])
 
   const filterHymns = (isLearned) => {
+    console.log("FilterHymns");
     let filteredArray = hymnLearn.filter((arr) => {
-      if (arr[2] === isLearned) {
+      if (arr[1] === isLearned) {
         return true;
-      } else if (arr[2] === !isLearned) {
+      } else if (arr[1] === !isLearned) {
         return false;
       }
     })
@@ -77,7 +54,7 @@ export default function App() {
   }
 
   const GetHymnIndexByNo = (no) => {
-    for (let i = 0; i < filteredHymns.length; i++) {
+    for (let i = 0; i < HymnNoAndTitle.length; i++) {
       if (HymnNoAndTitle[i][0] === no) {
         return i;
       }
@@ -85,22 +62,26 @@ export default function App() {
   }
 
   const GetRandom = (isLearned) => {
+    console.log("GetRandom");
     let filteredHymns = filterHymns(isLearned);
+    let rand;
     let no;
 
     if (filteredHymns.length > 0) {
-      no = Math.floor(Math.random() * (filteredHymns.length) + 1)
+      rand = Math.floor(Math.random() * (filteredHymns.length))
+      no = filteredHymns[rand][0];
     } else {
       no = -1;
     }
 
+    // console.log(no);
     return GetHymnIndexByNo(no);
   }
 
   const [learning, setLearning] = useStickyState(GetRandom(false), 'learn');
-  const [practice, setPractice] = setState([]);
 
   const GetLearn = () => {
+    console.log("GetLearn");
     setLearning(GetRandom(false));
   }
 
@@ -109,7 +90,9 @@ export default function App() {
     let practiceArray = []
 
     if (filteredHymns.length <= practiceNo) {
-      practiceArray = [...filteredHymns];
+      for (let i = 0; i < filteredHymns.length; i++) {
+        practiceArray.push(GetHymnIndexByNo(filteredHymns[i][0]));
+      }
     } else {
       for (let i = 0; i < practiceNo; i++) {
         let randomHymn;
@@ -130,7 +113,7 @@ export default function App() {
     let newHymnLearn = [...hymnLearn];
     newHymnLearn[index][1] = false;
 
-    setHimLearn(newHymnLearn);
+    setHimLearn(newHymnLearn,);
   }
   const LearnedNew = () => {
     let newHymnLearn = [...hymnLearn];
@@ -149,19 +132,26 @@ export default function App() {
     setHimLearn(newHymnLearn)
   }
 
+  const clearStorage = () => {
+    window.localStorage.clear();
+  }
+
+  // console.log("LEARNING");
+  // console.log(learning);
+  console.log(practice);
+
   return (
     <main>
       <Header />
+      <button onClick={clearStorage}>clear mems</button>
       <Learn
-        get={GetLearn}
+        getLearn={GetLearn}
         learning={learning}
         hymns={HymnNoAndTitle}
         learned={LearnedNew}
-        new={GetLearn}
       />
-      <div>{HymnNoAndTitle[learning][0] + ' ' + HymnNoAndTitle[learning][1]}</div>
       <Practice
-        get={GetPractice}
+        getPractice={GetPractice}
         practice={practice}
         hymns={HymnNoAndTitle}
       />
