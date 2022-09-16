@@ -137,6 +137,29 @@ export default function App() {
         }
       }
       setPractice(practiceArray);
+    }
+  }
+  
+  const GetPracticeUser = () => {
+    let filteredHymns = filterHymns(true);
+    let practiceArray = []
+
+    if (filteredHymns.length > 0){
+      if (filteredHymns.length <= practiceNo) {
+        toast.error("You've only learned " + numLearned + " songs.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+          autoClose: 4000
+        })
+      } else {
+        for (let i = 0; i < practiceNo; i++) {
+          let randomHymn;
+          do {
+            randomHymn = GetRandom(true);
+          } while (practiceArray.includes(randomHymn))
+          practiceArray.push(randomHymn);
+        }
+        setPractice(practiceArray);
+      }
     } else {
       toast.error("You haven't learned anything yet!.", {
         position: toast.POSITION.BOTTOM_CENTER,
@@ -304,7 +327,7 @@ export default function App() {
           delay = {gradientDelay}
         />
         <Practice
-          getPractice={GetPractice}
+          getPractice={GetPracticeUser}
           practice={practice}
           hymns={HymnNoAndTitle}
           fresh={fresh}
