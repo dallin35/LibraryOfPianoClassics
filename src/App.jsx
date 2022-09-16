@@ -4,25 +4,27 @@ import Configure from './component/configure.jsx'
 import Header from './component/header.jsx'
 import Learn from './component/learn.jsx'
 import Practice from './component/practice.jsx'
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import cookieTemplate from './data/cookie-default.json'
 import hymnNoAndTitle from './data/hymnNoAndTitle.json'
 
 export default function App() {
 
-  // const rawCookie = JSON.parse(cookieTemplate);
   const practiceNo = 5;
+  const gradientDelay = 55;
 
   const HymnNoAndTitle = [...hymnNoAndTitle.data];
   const [hymnLearn, setHimLearn] = useStickyState([...cookieTemplate.data], 'status');
   const [hymnPractice, setHimPractice] = useState([]);
   const [practice, setPractice] = useState([]);
-  // const [hymnLearn, setHimLearn] = useState([]);
+  const [numLearned, setNumLearned] = useState();
+  const [finished, setFinished] = useState();
+  const [fresh, setFresh] = useState();
+  const numSongs = HymnNoAndTitle.length;
 
   function useStickyState(defaultValue, key) {
-    // console.log("does this run?");
-    // console.log(defaultValue);
-    // console.log(window.localStorage.getItem(key));
     const [value, setValue] = React.useState(() => {
       const stickyValue = window.localStorage.getItem(key);
       return stickyValue !== null
@@ -32,18 +34,28 @@ export default function App() {
     React.useEffect(() => {
       window.localStorage.setItem(key, JSON.stringify(value));
     }, [key, value]);
-    // console.log('VALUE');
-    // console.log(value);
     return [value, setValue];
   }
 
   useEffect(() => {
+    setNumLearned(filterHymns(true).length);
     GetPractice();
   }, [])
 
+  useEffect(() => {
+    setNumLearned(filterHymns(true).length);
+  }, [hymnLearn])
+
+  useEffect(() => {
+    learningState();
+    if (numLearned <= practiceNo) {
+      GetPractice();
+    }
+  }, [numLearned])
+
   const filterHymns = (isLearned) => {
-    console.log("FilterHymns");
-    let filteredArray = hymnLearn.filter((arr) => {
+    let filteredArray = [];
+    filteredArray = hymnLearn.filter((arr) => {
       if (arr[1] === isLearned) {
         return true;
       } else if (arr[1] === !isLearned) {
@@ -53,20 +65,35 @@ export default function App() {
     return filteredArray;
   }
 
+  const learningState = () => {
+    if (numLearned == numSongs) {
+      setFinished(true);
+      setFresh(false);
+    } else if (numLearned == 0) {
+      setFinished(false);
+      setFresh(true);
+    } else {
+      setFinished(false);
+      setFresh(false);
+    }
+  }
+
   const GetHymnIndexByNo = (no) => {
-    for (let i = 0; i < HymnNoAndTitle.length; i++) {
-      if (HymnNoAndTitle[i][0] === no) {
-        return i;
+    if (no > 0) {
+      for (let i = 0; i < HymnNoAndTitle.length; i++) {
+        if (HymnNoAndTitle[i][0] === no) {
+          return i;
+        }
       }
+    } else {
+      return -1;
     }
   }
 
   const GetRandom = (isLearned) => {
-    console.log("GetRandom");
     let filteredHymns = filterHymns(isLearned);
     let rand;
     let no;
-
     if (filteredHymns.length > 0) {
       rand = Math.floor(Math.random() * (filteredHymns.length))
       no = filteredHymns[rand][0];
@@ -74,91 +101,229 @@ export default function App() {
       no = -1;
     }
 
-    // console.log(no);
     return GetHymnIndexByNo(no);
   }
 
   const [learning, setLearning] = useStickyState(GetRandom(false), 'learn');
 
   const GetLearn = () => {
-    console.log("GetLearn");
-    setLearning(GetRandom(false));
+    if (learning > 0) {
+      let idx = GetRandom(false);
+      setLearning(idx);
+    } else {
+      toast.error("There are no more songs to learn.", {
+        position: toast.POSITION.BOTTOM_CENTER,
+        autoClose: 4000
+      })
+    }
   }
 
   const GetPractice = () => {
     let filteredHymns = filterHymns(true);
     let practiceArray = []
 
-    if (filteredHymns.length <= practiceNo) {
-      for (let i = 0; i < filteredHymns.length; i++) {
-        practiceArray.push(GetHymnIndexByNo(filteredHymns[i][0]));
+    if (filteredHymns.length > 0){
+      if (filteredHymns.length <= practiceNo) {
+        for (let i = 0; i < filteredHymns.length; i++) {
+          practiceArray.push(GetHymnIndexByNo(filteredHymns[i][0]));
+        }
+      } else {
+        for (let i = 0; i < practiceNo; i++) {
+          let randomHymn;
+          do {
+            randomHymn = GetRandom(true);
+          } while (practiceArray.includes(randomHymn))
+          practiceArray.push(randomHymn);
+        }
+      }
+      setPractice(practiceArray);
+    } else {
+      toast.error("You haven't learned anything yet!.", {
+        position: toast.POSITION.BOTTOM_CENTER,
+        autoClose: 4000
+      })
+    }
+  }
+
+  const notify = (msg) => toast.error(msg, {
+    position: toast.POSITION.BOTTOM_CENTER,
+    autoClose: 4000
+  });
+  const toaster = () => toast.success("This isn't a ten second setup", {
+    position: toast.POSITION.BOTTOM_CENTER,
+    autoClose: 4000
+  })
+
+  const Unlearned = (no) => {
+    if (!isNaN(no)) {
+      no = parseInt(no)
+      if (Number.isInteger(no)) {
+        let index = GetHymnIndexByNo(no);
+        if (index !== -1) {
+          if (hymnLearn[index][1]) {
+            let newHymnLearn = [...hymnLearn];
+
+            if (numLearned === numSongs) {
+              setLearning(index);
+            }
+
+            if (practice.includes(index) && filterHymns(true).length > 5) {
+              let newPractice = [...practice];
+              let randomHymn;
+              do {
+                randomHymn = GetRandom(true);
+              } while (newPractice.includes(randomHymn))
+              newPractice[newPractice.indexOf(index)] = randomHymn;
+              setPractice(newPractice);
+            }
+            
+            newHymnLearn[index][1] = false;
+            setHimLearn(newHymnLearn)
+
+            toast.success("The song has been updated successfully", {
+              position: toast.POSITION.BOTTOM_CENTER,
+              autoClose: 4000
+            })
+          } else {
+            toast.error("That song hasn't been learned yet.", {
+              position: toast.POSITION.BOTTOM_CENTER,
+              autoClose: 4000
+            })
+          }
+        } else {
+          toast.error("There is no song with that page number.", {
+            position: toast.POSITION.BOTTOM_CENTER,
+            autoClose: 4000
+          })
+        } 
+      } else {
+        toast.error("Invalid input. Please enter an integer.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+          autoClose: 4000
+        })
       }
     } else {
-      for (let i = 0; i < practiceNo; i++) {
-        let randomHymn;
-        do {
-          randomHymn = GetRandom(true);
-        } while (practiceArray.includes(randomHymn))
-        practiceArray.push(randomHymn);
-      }
+      toast.error("Invalid input. Please enter a number.", {
+        position: toast.POSITION.BOTTOM_CENTER,
+        autoClose: 4000
+      })
     }
-    setPractice(practiceArray);
   }
-
-  const Learned = () => {
-
-  }
-  const Unlearned = (no) => {
-    let index = GetHymnIndexByNo(no);
-    let newHymnLearn = [...hymnLearn];
-    newHymnLearn[index][1] = false;
-
-    setHimLearn(newHymnLearn,);
-  }
+  
   const LearnedNew = () => {
     let newHymnLearn = [...hymnLearn];
-    newHymnLearn[learning][1] = true;
-    newHymnLearn[learning][2] = newHymnLearn[learning][2] + 1;
-
-    setHimLearn(newHymnLearn)
-    GetLearn();
+    if (learning > 0) {
+      newHymnLearn[learning][1] = true;
+      // newHymnLearn[learning][2] = newHymnLearn[learning][2] + 1;
+  
+      setHimLearn(newHymnLearn);
+      GetLearn();
+    } else {
+      toast.error("There are no more songs to learn.", {
+        position: toast.POSITION.BOTTOM_CENTER,
+        autoClose: 4000
+      })
+    }
   }
   const LearnedManual = (no) => {
-    let index = GetHymnIndexByNo(no);
-    let newHymnLearn = [...hymnLearn];
-    newHymnLearn[index][1] = true;
-    newHymnLearn[index][2] = newHymnLearn[learning][2] + 1;
+    if (!isNaN(no)) {
+      no = parseInt(no)
+      if (Number.isInteger(no)) {
+        let index = GetHymnIndexByNo(no);
+        if (index !== -1) {
+          if (!hymnLearn[index][1]) {
+            let newHymnLearn = [...hymnLearn];
+            
+            if (numLearned >= numSongs - 1) {
+              setLearning(-1);
+            } else if (index === learning) {
+              GetLearn();
+            }
+            
+            newHymnLearn[index][1] = true;        
+            setHimLearn(newHymnLearn)
 
-    setHimLearn(newHymnLearn)
+            toast.success("The song has been updated successfully", {
+              position: toast.POSITION.BOTTOM_CENTER,
+              autoClose: 4000
+            })
+          } else {
+            toast.error("That song has already been marked 'learned'.", {
+              position: toast.POSITION.BOTTOM_CENTER,
+              autoClose: 4000
+            })
+          }
+        } else {
+          toast.error("There is no song with that page number.", {
+            position: toast.POSITION.BOTTOM_CENTER,
+            autoClose: 4000
+          })
+        } 
+      } else {
+        toast.error("Invalid input. Please enter an integer.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+          autoClose: 4000
+        })
+      }
+    } else {
+      toast.error("Invalid input. Please enter a number.", {
+        position: toast.POSITION.BOTTOM_CENTER,
+        autoClose: 4000
+      })
+    }
+    // let index = GetHymnIndexByNo(no);
+    // let newHymnLearn = [...hymnLearn];
+    // newHymnLearn[index][1] = true;
+    // // newHymnLearn[index][2] = newHymnLearn[learning][2] + 1;
+
+    // setHimLearn(newHymnLearn)
   }
 
   const clearStorage = () => {
     window.localStorage.clear();
   }
 
-  // console.log("LEARNING");
-  // console.log(learning);
-  console.log(practice);
-
   return (
     <main>
-      <Header />
-      <button onClick={clearStorage}>clear mems</button>
-      <Learn
-        getLearn={GetLearn}
-        learning={learning}
-        hymns={HymnNoAndTitle}
-        learned={LearnedNew}
+      <Header 
+        numLearned={numLearned}
+        numSongs={numSongs}
+        delay = {gradientDelay}
       />
-      <Practice
-        getPractice={GetPractice}
-        practice={practice}
-        hymns={HymnNoAndTitle}
-      />
-      <Configure
-        learned={LearnedNew}
-        unlearned={Unlearned}
-      />
+      <div className='body'>
+        {//<button onClick={clearStorage}>clear mems</button>
+        }
+        <Learn
+          getLearn={GetLearn}
+          learning={learning}
+          hymns={HymnNoAndTitle}
+          learned={LearnedNew}
+          finished={finished}
+          numLearned={numLearned}
+          numSongs={numSongs}
+          delay = {gradientDelay}
+        />
+        <Practice
+          getPractice={GetPractice}
+          practice={practice}
+          hymns={HymnNoAndTitle}
+          fresh={fresh}
+          numLearned={numLearned}
+          numSongs={numSongs}
+          delay = {gradientDelay}
+        />
+        <Configure
+          learned={LearnedManual}
+          unlearned={Unlearned}
+          numLearned={numLearned}
+          numSongs={numSongs}
+          delay = {gradientDelay}
+        />
+        <br />
+        <br />
+        <br />
+        <br />
+      </div>
     </main>
   )
 }
