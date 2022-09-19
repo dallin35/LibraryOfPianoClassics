@@ -13,7 +13,7 @@ import hymnNoAndTitle from './data/hymnNoAndTitle.json'
 export default function App() {
 
   const practiceNo = 5;
-  const gradientDelay = 55;
+  const toastDuration = 1500;
 
   const HymnNoAndTitle = [...hymnNoAndTitle.data];
   const [hymnLearn, setHimLearn] = useStickyState([...cookieTemplate.data], 'status');
@@ -24,6 +24,8 @@ export default function App() {
   const [fresh, setFresh] = useState();
   const numSongs = HymnNoAndTitle.length;
 
+  const gradientDelay = Math.floor(hymnLearn.length / 5);
+  
   function useStickyState(defaultValue, key) {
     const [value, setValue] = React.useState(() => {
       const stickyValue = window.localStorage.getItem(key);
@@ -107,13 +109,13 @@ export default function App() {
   const [learning, setLearning] = useStickyState(GetRandom(false), 'learn');
 
   const GetLearn = () => {
-    if (learning > 0) {
+    if (learning >= 0) {
       let idx = GetRandom(false);
       setLearning(idx);
     } else {
       toast.error("There are no more songs to learn.", {
         position: toast.POSITION.BOTTOM_CENTER,
-        autoClose: 4000
+        autoClose: toastDuration
       })
     }
   }
@@ -122,7 +124,7 @@ export default function App() {
     let filteredHymns = filterHymns(true);
     let practiceArray = []
 
-    if (filteredHymns.length > 0){
+    if (filteredHymns.length > 0) {
       if (filteredHymns.length <= practiceNo) {
         for (let i = 0; i < filteredHymns.length; i++) {
           practiceArray.push(GetHymnIndexByNo(filteredHymns[i][0]));
@@ -139,16 +141,16 @@ export default function App() {
       setPractice(practiceArray);
     }
   }
-  
+
   const GetPracticeUser = () => {
     let filteredHymns = filterHymns(true);
     let practiceArray = []
 
-    if (filteredHymns.length > 0){
+    if (filteredHymns.length > 0) {
       if (filteredHymns.length <= practiceNo) {
         toast.error("You've only learned " + numLearned + " songs.", {
           position: toast.POSITION.BOTTOM_CENTER,
-          autoClose: 4000
+          autoClose: toastDuration
         })
       } else {
         for (let i = 0; i < practiceNo; i++) {
@@ -163,135 +165,167 @@ export default function App() {
     } else {
       toast.error("You haven't learned anything yet!.", {
         position: toast.POSITION.BOTTOM_CENTER,
-        autoClose: 4000
+        autoClose: toastDuration
       })
     }
   }
 
   const notify = (msg) => toast.error(msg, {
     position: toast.POSITION.BOTTOM_CENTER,
-    autoClose: 4000
+    autoClose: toastDuration
   });
   const toaster = () => toast.success("This isn't a ten second setup", {
     position: toast.POSITION.BOTTOM_CENTER,
-    autoClose: 4000
+    autoClose: toastDuration
   })
 
   const Unlearned = (no) => {
     if (!isNaN(no)) {
       no = parseInt(no)
       if (Number.isInteger(no)) {
-        let index = GetHymnIndexByNo(no);
-        if (index !== -1) {
-          if (hymnLearn[index][1]) {
-            let newHymnLearn = [...hymnLearn];
+        if (no < hymnLearn.length && no > 0) {
+          let index = GetHymnIndexByNo(no);
+          if (index !== -1) {
+            if (hymnLearn[index][1]) {
+              let newHymnLearn = [...hymnLearn];
 
-            if (numLearned === numSongs) {
-              setLearning(index);
+              if (numLearned === numSongs) {
+                setLearning(index);
+              }
+
+              if (practice.includes(index) && filterHymns(true).length > 5) {
+                let newPractice = [...practice];
+                let randomHymn;
+                do {
+                  randomHymn = GetRandom(true);
+                } while (newPractice.includes(randomHymn))
+                newPractice[newPractice.indexOf(index)] = randomHymn;
+                setPractice(newPractice);
+              }
+              newHymnLearn[index][1] = false;
+              setHimLearn(newHymnLearn);
+
+              document.getElementById('input').value = "";
+              document?.getElementById('input').focus();
+              document?.getElementById('input').select();
+
+              toast.success("The song has been updated successfully", {
+                position: toast.POSITION.BOTTOM_CENTER,
+                autoClose: toastDuration
+              })
+              return;
+            } else {
+              toast.error("That song hasn't been learned yet.", {
+                position: toast.POSITION.BOTTOM_CENTER,
+                autoClose: toastDuration
+              })
             }
-
-            if (practice.includes(index) && filterHymns(true).length > 5) {
-              let newPractice = [...practice];
-              let randomHymn;
-              do {
-                randomHymn = GetRandom(true);
-              } while (newPractice.includes(randomHymn))
-              newPractice[newPractice.indexOf(index)] = randomHymn;
-              setPractice(newPractice);
-            }
-            
-            newHymnLearn[index][1] = false;
-            setHimLearn(newHymnLearn)
-
-            toast.success("The song has been updated successfully", {
-              position: toast.POSITION.BOTTOM_CENTER,
-              autoClose: 4000
-            })
           } else {
-            toast.error("That song hasn't been learned yet.", {
+            toast.error("There is no song with that page number.", {
               position: toast.POSITION.BOTTOM_CENTER,
-              autoClose: 4000
+              autoClose: toastDuration
             })
           }
         } else {
-          toast.error("There is no song with that page number.", {
+          toast.error("Please enter a number between 1 and " + hymnLearn.length + ".", {
             position: toast.POSITION.BOTTOM_CENTER,
-            autoClose: 4000
+            autoClose: toastDuration
           })
-        } 
+        }
       } else {
         toast.error("Invalid input. Please enter an integer.", {
           position: toast.POSITION.BOTTOM_CENTER,
-          autoClose: 4000
+          autoClose: toastDuration
         })
       }
     } else {
       toast.error("Invalid input. Please enter a number.", {
         position: toast.POSITION.BOTTOM_CENTER,
-        autoClose: 4000
+        autoClose: toastDuration
       })
     }
+    document?.getElementById('input').focus();
+    document?.getElementById('input').select();
   }
-  
+
   const LearnedNew = () => {
+
     let newHymnLearn = [...hymnLearn];
-    if (learning > 0) {
+    console.log("LEARNING");
+    console.log(learning);
+
+    if (learning >= 0) {
+      console.log("ENTERED");
       newHymnLearn[learning][1] = true;
       // newHymnLearn[learning][2] = newHymnLearn[learning][2] + 1;
-  
+
       setHimLearn(newHymnLearn);
       GetLearn();
     } else {
       toast.error("There are no more songs to learn.", {
         position: toast.POSITION.BOTTOM_CENTER,
-        autoClose: 4000
+        autoClose: toastDuration
       })
     }
   }
+
   const LearnedManual = (no) => {
     if (!isNaN(no)) {
       no = parseInt(no)
       if (Number.isInteger(no)) {
-        let index = GetHymnIndexByNo(no);
-        if (index !== -1) {
-          if (!hymnLearn[index][1]) {
-            let newHymnLearn = [...hymnLearn];
-            
-            if (numLearned >= numSongs - 1) {
-              setLearning(-1);
-            } else if (index === learning) {
-              GetLearn();
-            }
-            
-            newHymnLearn[index][1] = true;        
-            setHimLearn(newHymnLearn)
+        if (no < hymnLearn.length && no > 0) {
+          let index = GetHymnIndexByNo(no);
+          if (index !== -1) {
+            if (!hymnLearn[index][1]) {
+              let newHymnLearn = [...hymnLearn];
 
-            toast.success("The song has been updated successfully", {
-              position: toast.POSITION.BOTTOM_CENTER,
-              autoClose: 4000
-            })
+              if (numLearned >= numSongs - 1) {
+                setLearning(-1);
+              } else if (index === learning) {
+                GetLearn();
+              }
+
+              newHymnLearn[index][1] = true;
+              setHimLearn(newHymnLearn)
+
+              document.getElementById('input').value = "";
+              document?.getElementById('input').focus();
+              document?.getElementById('input').select();
+
+              toast.success("The song has been updated successfully", {
+                position: toast.POSITION.BOTTOM_CENTER,
+                autoClose: toastDuration
+              })
+
+              return;
+            } else {
+              toast.error("That song has already been marked 'learned'.", {
+                position: toast.POSITION.BOTTOM_CENTER,
+                autoClose: toastDuration
+              })
+            }
           } else {
-            toast.error("That song has already been marked 'learned'.", {
+            toast.error("There is no song with that page number.", {
               position: toast.POSITION.BOTTOM_CENTER,
-              autoClose: 4000
+              autoClose: toastDuration
             })
           }
         } else {
-          toast.error("There is no song with that page number.", {
+          toast.error("Please enter a number between 1 and " + hymnLearn.length + ".", {
             position: toast.POSITION.BOTTOM_CENTER,
-            autoClose: 4000
+            autoClose: toastDuration
           })
-        } 
+        }
       } else {
         toast.error("Invalid input. Please enter an integer.", {
           position: toast.POSITION.BOTTOM_CENTER,
-          autoClose: 4000
+          autoClose: toastDuration
         })
       }
     } else {
       toast.error("Invalid input. Please enter a number.", {
         position: toast.POSITION.BOTTOM_CENTER,
-        autoClose: 4000
+        autoClose: toastDuration
       })
     }
     // let index = GetHymnIndexByNo(no);
@@ -300,6 +334,8 @@ export default function App() {
     // // newHymnLearn[index][2] = newHymnLearn[learning][2] + 1;
 
     // setHimLearn(newHymnLearn)
+    document?.getElementById('input').focus();
+    document?.getElementById('input').select();
   }
 
   const clearStorage = () => {
@@ -308,10 +344,10 @@ export default function App() {
 
   return (
     <main>
-      <Header 
+      <Header
         numLearned={numLearned}
         numSongs={numSongs}
-        delay = {gradientDelay}
+        delay={gradientDelay}
       />
       <div className='body'>
         {//<button onClick={clearStorage}>clear mems</button>
@@ -324,7 +360,7 @@ export default function App() {
           finished={finished}
           numLearned={numLearned}
           numSongs={numSongs}
-          delay = {gradientDelay}
+          delay={gradientDelay}
         />
         <Practice
           getPractice={GetPracticeUser}
@@ -333,14 +369,14 @@ export default function App() {
           fresh={fresh}
           numLearned={numLearned}
           numSongs={numSongs}
-          delay = {gradientDelay}
+          delay={gradientDelay}
         />
         <Configure
           learned={LearnedManual}
           unlearned={Unlearned}
           numLearned={numLearned}
           numSongs={numSongs}
-          delay = {gradientDelay}
+          delay={gradientDelay}
         />
         <br />
         <br />
