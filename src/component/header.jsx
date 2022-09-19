@@ -8,7 +8,7 @@ const Header = ({ numLearned, numSongs }) => {
       animationPlayState: "paused",
       animationDelay: "-" + numLearned + "s"
     }}>
-      <div className="center-header">Hymns</div>
+      <div className="center-header">Piano Classics</div>
       <div className="right-header">
         <div className="tracker">{numLearned + "/" + numSongs}</div>
         <div className="tracker">{((100 * numLearned)/numSongs).toFixed(2) + "%"}</div>
